@@ -4,6 +4,9 @@
 #include <string>
 #include <stdint.h>
 #include <memory>
+#include <list>
+#include <stringstream>
+#include <fstream>
 namespace Logger{
 
     //日志时间
@@ -48,10 +51,12 @@ namespace Logger{
     public:
         typedef std::shared_ptr<LogAppender> ptr;
         virtual ~LogAppender(){}
-
-        void log(LogLevel::Level level, LogEvent::ptr event);
-    private:
+        virtual void log(LogLevel::Level level, LogEvent::ptr event) = 0;
+        void setFormatter(LogFormatter::ptr val){ m_formatter = val;}
+        LogFormatter::ptr getFormatter() const { return m_formatter}
+    protected:
         LogLevel::Level m_level;
+        LogFormatter::ptr m_formatter;
     };
 
     //日志器   
@@ -65,6 +70,12 @@ namespace Logger{
         void warn(LogEvent::ptr event);
         void error(LogEvent::ptr event);
         void fatal(LogEvent::ptr event);
+
+        void addAppender(LogAppender:: appender);
+        void delAppender(LogAppender:: appender);
+        LogLevel::Level getLevel()const{return m_level;}
+        void setLevel(LogLevel::Level level){ m_level = Level;}
+
         private:
         std::string m_name;      //日志名称
         LogLevel::Level m_level; //日志级别
@@ -73,12 +84,20 @@ namespace Logger{
 
     //输出到控制台的Appender
     class StdoutLogAppender: public LogAppender{
-
+    public:
+        typedef std::shared_ptr<StdoutLogAppender> ptr;
+        void log(LogLevel::Level level, LogEvent::ptr event) override;
     };
 
     //输出到文件的APpender
     class FileLogAppender: public LogAppender{
-
+        typedef std::shared_ptr<FileLogAppender> ptr;
+        FileLogAppender(const std::string& filename);
+        void log(LogLevel::Level level, LogEvent::ptr event) override;
+        bool reopen(); //重新打开文件 打开为true
+    private:
+        std::string m_filename;
+        std::ofstream m_filestream;
     };
 
 }
