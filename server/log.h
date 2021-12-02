@@ -60,10 +60,15 @@ namespace Logger{
         typedef std::shared_ptr<Logger> ptr;
         Logger(const std::string& name =='root');
         void log(Level level, const LogEvent::ptr event);
-    private:
-        std::string m_name;
-        LogLevel::Level m_level;
-        LogAppender::ptr;
+        void debug(LogEvent::ptr event);
+        void info(LogEvent::ptr event);
+        void warn(LogEvent::ptr event);
+        void error(LogEvent::ptr event);
+        void fatal(LogEvent::ptr event);
+        private:
+        std::string m_name;      //日志名称
+        LogLevel::Level m_level; //日志级别
+        std::list<LogAppender::ptr> m_appenders;        //append合集
     };
 
     //输出到控制台的Appender
