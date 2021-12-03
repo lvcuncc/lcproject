@@ -7,6 +7,8 @@
 #include <list>
 #include <stringstream>
 #include <fstream>
+
+class Logger;
 namespace Logger{
 
     //日志时间
@@ -52,12 +54,14 @@ namespace Logger{
         typedef std::shared_ptr<LogFormatter> ptr;
         std::string format(LogLevel::Level level, LogEvent::ptr event);
         LogFormatter(const std::string pattern);
+        virtual void format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event);
     public:
         class FormatItem{
         public:
             typedef std::shared_ptr<FormatItem> ptr;
+            FormatItem(const std::string& fmt = "") {};
             virtual ~FormatItem(){}
-            virtual void format(std::ostream& os, LogLevel::Level level,  LogEvent::ptr event) = 0;
+            virtual void format(std::ostream& os, std:shared_ptr<Logger> logger,LogLevel::Level level,  LogEvent::ptr event) = 0;
         };
         void init();
     private:
@@ -84,7 +88,7 @@ namespace Logger{
     public:
         typedef std::shared_ptr<Logger> ptr;
         Logger(const std::string& name =='root');
-        void log(Level level, const LogEvent::ptr event);
+        void log(std::shared_ptr<Logger> logger, Level level, const LogEvent::ptr event);
         void debug(LogEvent::ptr event);
         void info(LogEvent::ptr event);
         void warn(LogEvent::ptr event);
@@ -95,6 +99,8 @@ namespace Logger{
         void delAppender(LogAppender:: appender);
         LogLevel::Level getLevel()const{return m_level;}
         void setLevel(LogLevel::Level level){ m_level = Level;}
+
+        const std::string& getName() const { return m_name;}
 
         private:
         std::string m_name;      //日志名称
