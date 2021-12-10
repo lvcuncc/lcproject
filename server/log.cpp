@@ -1,5 +1,7 @@
 #include "log.h"
 #include <map>
+#include <iostream>
+#include <function>
 namespace server
 {
 
@@ -25,6 +27,7 @@ namespace server
 
     class MessageFormatItem : public LogFormatter::FormatItem{
        public:
+        MessageFormatItem(const std::string& str =""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << event->getContent();
         }
@@ -32,6 +35,7 @@ namespace server
 
     class LevelFormatItem : public LogFormatter::FormatItem{
         public:
+        LevelFormatItem(const std::string ="") {}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << LogLevel::ToString(Level);
         }
@@ -39,6 +43,7 @@ namespace server
 
     class ElapseFormatItem : public LogFormatter::FormatItem{
         public:
+            ElapseFormatItem(const std::string =""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << event->getElapse();
         }
@@ -46,6 +51,7 @@ namespace server
 
     class NameFormatItem : public LogFormatter::FormatItem{
         public:
+            NameFormatItem(const std::string = ""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << logger->getName();
         }
@@ -54,6 +60,7 @@ namespace server
 
     class ThreadFormatItem : public LogFormatter::FormatItem{
         public:
+            ThreadFormatItem(const std::string = ""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << event->getThreadId();
         }
@@ -61,6 +68,7 @@ namespace server
 
     class FiberIdFormatItem : public LogFormatter::FormatItem{
         public:
+            FiberIdFormatItem(const std::string = ""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << event->getFiberId();
         }
@@ -82,12 +90,14 @@ namespace server
 
 	class FileNameFormatter : public LogFormatter::FormatItem{
 	    public:
+            FileFormatItem(const std::string = ""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << event->getFile();
         }
     };
     class LineFormatItem: public LogFormatter::FormatItem{
     	public:
+             LineFormatItem(const std::string = ""){}
           void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << event->getLine();
     };
@@ -95,6 +105,7 @@ namespace server
 
     class NewLineFormatter : public LogFormatter::FormatItem{
     public:
+        NewLineFormatter(const std::string = ""){}
     	void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << std::endl;
 
@@ -102,12 +113,10 @@ namespace server
     };
 
 
-
-
     class StringFormatItem : public LogFormatter::FormatItem{
     public:
     	StringFormatItem( const std::string& str )
-    			:FormatItem(str), m_string(str){}
+    			:m_string(str){}
     	void format( std::ostream& os, Logger::ptr logger, LogLevel::Level level ,LogEvent::ptr event ) override{
           	os << m_string;
         }
@@ -116,11 +125,9 @@ namespace server
     };
 
 
-
-
 	Logger::Logger(const std::string& name)
 		:m_name(name){
-
+            m_formatter.reset(new LogFormatter("%t"))
 	}
 
 	void Logger::addAppender(LogAppender::ptr appender){
@@ -141,25 +148,26 @@ namespace server
 
     void Logger::log(Level::level, const LogEvent::ptr event){
     	if( m_level <= level){
+            auto self = shared_from_this();
     		for(auto& i : m_appenders ){
-    			i->log(Level, event);
+    			i->log(self, Level, event);
     		}
     	}
     }
     void Logger::debug(LogEvent::ptr event){
-    	debug(LogLevel::DEBUG, event);
+    	log(LogLevel::DEBUG, event);
     }
     void Logger::info(LogEvent::ptr event){
-    	debug(LogLevel::INFO, event);
+    	log(LogLevel::INFO, event);
     }
     void Logger::warn(LogEvent::ptr event){
-    	debug(LogLevel::WARN, event);
+    	log(LogLevel::WARN, event);
     }
     void Logger::error(LogEvent::ptr event){
-    	debug(LogLevel::ERROR, event);
+    	log(LogLevel::ERROR, event);
     }
     void Logger::fatal(LogEvent::ptr event){
-    	debug(LogLevel::FATAL, event);
+    	log(LogLevel::FATAL, event);
     }
 
     FileLogAppender::FileLogAppender( const std::string& filename)
@@ -169,7 +177,7 @@ namespace server
 
     void FileLogAppender::log( std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event){
     	if( level >= m_level){
-    		m_filestream << m_formatter.format(logger, level, event);
+    		m_filestream << m_formatter->format(logger, level, event);
     	}
 
     }
@@ -182,7 +190,7 @@ namespace server
     }
     void StdoutLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event){
     	if( level >= m_level){
-    		std::cout<< m_formatter.format(logger, level, event);
+    		std::cout<< m_formatter->format(logger, level, event);
     	}
     }
 
@@ -248,7 +256,7 @@ namespace server
 
     		if( fmt_status == 0){
     			if( !nstr.empty()){
-    				vec.push_back(std::make_pair(nstr, "", 0));
+    				vec.push_back(std::make_tuple(nstr, std::string(), 0));
     			}
     			str = m_pattern.substr( i+1, n - i - 1);
     			i = n;
@@ -262,7 +270,7 @@ namespace server
     	}
 
     	if( !nstr.empty()){
-    		vec.push_back(std::make_pair(nstr, "", 0));
+    		vec.push_back(std::make_tuple(nstr, "", 0));
     	}
     	//%m -- 消息体
     	//%p -- level

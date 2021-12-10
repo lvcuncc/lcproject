@@ -5,8 +5,9 @@
 #include <stdint.h>
 #include <memory>
 #include <list>
-#include <stringstream>
+#include <sstream>
 #include <fstream>
+#include <vector>
 
 class Logger;
 namespace Logger{
@@ -84,7 +85,7 @@ namespace Logger{
     };
 
     //日志器   
-    class Logger{
+    class Logger: public std::enable_shared_from_this<Logger>{
     public:
         typedef std::shared_ptr<Logger> ptr;
         Logger(const std::string& name =='root');
@@ -106,20 +107,21 @@ namespace Logger{
         std::string m_name;      //日志名称
         LogLevel::Level m_level; //日志级别
         std::list<LogAppender::ptr> m_appenders;        //append合集
+        LogFormatItem::ptr m_formatter;
     };
 
     //输出到控制台的Appender
     class StdoutLogAppender: public LogAppender{
     public:
         typedef std::shared_ptr<StdoutLogAppender> ptr;
-        void log(LogLevel::Level level, LogEvent::ptr event) override;
+        void log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override;
     };
 
     //输出到文件的APpender
     class FileLogAppender: public LogAppender{
         typedef std::shared_ptr<FileLogAppender> ptr;
         FileLogAppender(const std::string& filename);
-        void log(LogLevel::Level level, LogEvent::ptr event) override;
+        void log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override;
         bool reopen(); //重新打开文件 打开为true
     private:
         std::string m_filename;
